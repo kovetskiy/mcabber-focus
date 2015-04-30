@@ -31,7 +31,8 @@ static void focus_init   (void);
 static void focus_uninit (void);
 
 static unsigned int g_hook;
-static xdo_t *xdo;
+static xdo_t *g_xdo;
+static Window g_mcabber_window;
 
 module_info_t info_focus = {
     .branch          = MCABBER_BRANCH,
@@ -65,7 +66,7 @@ static guint focus_process_message(const gchar *hook, hk_arg_t *args, gpointer d
     }
 
     Window window;
-    int ret_get_focus = xdo_get_focused_window_sane(xdo, &window);
+    int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &window);
     if (ret_get_focus) {
         scr_log_print(
             LPRINT_NORMAL,
@@ -75,25 +76,7 @@ static guint focus_process_message(const gchar *hook, hk_arg_t *args, gpointer d
         goto finish;
     }
 
-    unsigned char *window_name;
-    int window_name_len, window_name_type;
-
-    int ret_get_name = xdo_get_window_name(
-        xdo, window,
-        &window_name, &window_name_len, &window_name_type
-    );
-
-    if (ret_get_name) {
-        scr_log_print(
-            LPRINT_NORMAL,
-            "xdo_get_window_name reported an error"
-        );
-
-        goto finish;
-    }
-
-    // TODO: move to settings or get this value in initialization step
-    if (strcmp((char *)window_name, "mcabber") != 0) {
+    if (window == g_mcabber_window) {
         cmd_get("chat_disable")->func("");
     }
 
@@ -104,14 +87,22 @@ finish:
 static void focus_init(void) {
     scr_log_print(LPRINT_NORMAL, "focus: init");
 
-    xdo = xdo_new(NULL);
+    g_xdo = xdo_new(NULL);
+
+    int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &g_mcabber_window);
+    if (ret_get_focus) {
+        scr_log_print(
+            LPRINT_NORMAL,
+            "xdo_get_focused_window_sane reported an error"
+        );
+    }
 
     g_hook = hk_add_handler(
          focus_process_message,
          HOOK_PRE_MESSAGE_IN,
          G_PRIORITY_DEFAULT,
          NULL
-     );
+    );
 }
 
 static void focus_uninit(void) {
