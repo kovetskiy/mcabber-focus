@@ -76,7 +76,7 @@ static guint focus_process_message(const gchar *hook, hk_arg_t *args, gpointer d
         goto finish;
     }
 
-    if (window == g_mcabber_window) {
+    if (window != g_mcabber_window) {
         cmd_get("chat_disable")->func("");
     }
 
