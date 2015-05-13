@@ -100,7 +100,7 @@ static void* handle_focus(void *arg) {
             scr_show_buddy_window();
         }
 
-        usleep(50000);
+        usleep(100000);
     }
 
     return NULL;
