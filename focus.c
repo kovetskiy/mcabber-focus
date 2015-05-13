@@ -11,9 +11,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 
 #include <mcabber/logprint.h>
 #include <mcabber/commands.h>
@@ -23,8 +23,6 @@
 #include <mcabber/config.h>
 #include <mcabber/hooks.h>
 
-// xdo vs std=c99
-typedef unsigned int useconds_t;
 #include <xdo.h>
 
 static void focus_init   (void);
@@ -33,6 +31,9 @@ static void focus_uninit (void);
 static unsigned int g_hook;
 static xdo_t *g_xdo;
 static Window g_mcabber_window;
+
+#include <pthread.h>
+static pthread_t ptid_focus;
 
 module_info_t info_focus = {
     .branch          = MCABBER_BRANCH,
@@ -84,6 +85,27 @@ finish:
     return HOOK_HANDLER_RESULT_ALLOW_MORE_HANDLERS;
 }
 
+static void* handle_focus(void *arg) {
+    while (true) {
+        Window window;
+
+        int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &window);
+        if (ret_get_focus) {
+            scr_log_print(
+                LPRINT_NORMAL,
+                "xdo_get_focused_window_sane reported an error"
+            );
+        } else if (window == g_mcabber_window) {
+            scr_set_chatmode(TRUE);
+            scr_show_buddy_window();
+        }
+
+        usleep(50000);
+    }
+
+    return NULL;
+}
+
 static void focus_init(void) {
     scr_log_print(LPRINT_NORMAL, "focus: init");
 
@@ -103,6 +125,8 @@ static void focus_init(void) {
          G_PRIORITY_DEFAULT,
          NULL
     );
+
+    pthread_create(&ptid_focus, NULL, &handle_focus, NULL);
 }
 
 static void focus_uninit(void) {
