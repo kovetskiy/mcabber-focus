@@ -89,18 +89,20 @@ static void* handle_focus(void *arg) {
     while (true) {
         Window window;
 
-        int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &window);
-        if (ret_get_focus) {
-            scr_log_print(
-                LPRINT_NORMAL,
-                "xdo_get_focused_window_sane reported an error"
-            );
-        } else if (window == g_mcabber_window) {
-            scr_set_chatmode(TRUE);
-            scr_show_buddy_window();
+        if (scr_get_chatmode() == FALSE) {
+            int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &window);
+            if (ret_get_focus) {
+                scr_log_print(
+                    LPRINT_NORMAL,
+                    "xdo_get_focused_window_sane reported an error"
+                );
+            } else if (window == g_mcabber_window) {
+                scr_set_chatmode(TRUE);
+                scr_show_buddy_window();
+            }
         }
 
-        usleep(100000);
+        usleep(50000);
     }
 
     return NULL;
