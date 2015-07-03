@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include <mcabber/logprint.h>
 #include <mcabber/commands.h>
@@ -128,9 +129,21 @@ static void focus_init(void) {
          NULL
     );
 
-    pthread_create(&ptid_focus, NULL, &handle_focus, NULL);
+    int res = pthread_create(&ptid_focus, NULL, &handle_focus, NULL);
+    if (res == 0) {
+        scr_log_print(LPRINT_NORMAL, "focus: thread started");
+    } else {
+        scr_log_print(LPRINT_NORMAL, "focus: thread starting failed");
+    }
 }
 
 static void focus_uninit(void) {
+    int res = pthread_cancel(ptid_focus);
+    if (res == 0) {
+        scr_log_print(LPRINT_NORMAL, "focus: thread stopped");
+    } else {
+        scr_log_print(LPRINT_NORMAL, "focus: thread stopping failed");
+    }
+
     hk_del_handler(HOOK_PRE_MESSAGE_IN, g_hook);
 }
