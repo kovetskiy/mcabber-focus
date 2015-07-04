@@ -113,6 +113,10 @@ static void focus_init(void) {
     scr_log_print(LPRINT_NORMAL, "focus: init");
 
     g_xdo = xdo_new(NULL);
+    if (g_xdo == NULL) {
+        scr_log_print(LPRINT_NORMAL, "focus: xdo_new failed.");
+        return;
+    }
 
     int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &g_mcabber_window);
     if (ret_get_focus) {
