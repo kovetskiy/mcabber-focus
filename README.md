@@ -11,4 +11,4 @@ module load focus
 
 # Todo
 - [ ] add documentation
-- [ ] add pkgbuild
+- [x] add pkgbuild
