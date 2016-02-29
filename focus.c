@@ -26,15 +26,19 @@
 
 #include <xdo.h>
 
+#define UNUSED(x) (x = x)
+
 static void focus_init   (void);
 static void focus_uninit (void);
 
-static unsigned int g_hook;
+static unsigned int g_message_hook;
+static unsigned int g_unread_hook;
+
 static xdo_t *g_xdo;
+
 static Window g_mcabber_window;
 
-#include <pthread.h>
-static pthread_t ptid_focus;
+static unsigned int g_unread_count;
 
 module_info_t info_focus = {
     .branch          = MCABBER_BRANCH,
@@ -47,7 +51,12 @@ module_info_t info_focus = {
     .next            = NULL,
 };
 
-static guint focus_process_message(const gchar *hook, hk_arg_t *args, gpointer data) {
+static unsigned int focus_process_message(
+    const gchar *hook, hk_arg_t *args, gpointer data
+) {
+    UNUSED(hook);
+    UNUSED(data);
+
     const char *message_jid, *buddy_jid;
     int is_delayed, is_error;
 
@@ -86,28 +95,37 @@ finish:
     return HOOK_HANDLER_RESULT_ALLOW_MORE_HANDLERS;
 }
 
-static void* handle_focus(void *arg) {
-    while (true) {
-        Window window;
+static unsigned int focus_unread_handler(
+    const gchar *hook, hk_arg_t *args, gpointer data
+) {
+    UNUSED(hook);
+    UNUSED(data);
 
-        if (scr_get_chatmode() == FALSE) {
-            int ret_get_focus = xdo_get_focused_window_sane(g_xdo, &window);
-            if (ret_get_focus) {
-                scr_log_print(
-                    LPRINT_NORMAL,
-                    "xdo_get_focused_window_sane reported an error"
-                );
-            } else if (window == g_mcabber_window) {
-                scr_set_chatmode(TRUE);
-                scr_show_buddy_window();
-            }
+    unsigned int all_unread = 0;
+
+    for (; args->name; args++) {
+        if (!g_strcmp0(args->name, "unread")) {
+            all_unread = atoi(args->value);
         }
-
-        usleep(50000);
     }
 
-    return NULL;
+    if (g_unread_count > all_unread) {
+        int ret_get_focus = xdo_get_focused_window_sane(
+            g_xdo, &g_mcabber_window
+        );
+        if (ret_get_focus) {
+            scr_log_print(
+                LPRINT_NORMAL,
+                "xdo_get_focused_window_sane reported an error"
+            );
+        }
+    }
+
+    g_unread_count = all_unread;
+
+    return HOOK_HANDLER_RESULT_ALLOW_MORE_HANDLERS;
 }
+
 
 static void focus_init(void) {
     scr_log_print(LPRINT_NORMAL, "focus: init");
@@ -126,28 +144,24 @@ static void focus_init(void) {
         );
     }
 
-    g_hook = hk_add_handler(
+    g_message_hook = hk_add_handler(
          focus_process_message,
          HOOK_PRE_MESSAGE_IN,
          G_PRIORITY_DEFAULT,
          NULL
     );
 
-    int res = pthread_create(&ptid_focus, NULL, &handle_focus, NULL);
-    if (res == 0) {
-        scr_log_print(LPRINT_NORMAL, "focus: thread started");
-    } else {
-        scr_log_print(LPRINT_NORMAL, "focus: thread starting failed");
-    }
+    g_unread_hook = hk_add_handler(
+         focus_unread_handler,
+         HOOK_UNREAD_LIST_CHANGE,
+         G_PRIORITY_DEFAULT,
+         NULL
+    );
+
+    g_unread_count = 0;
 }
 
 static void focus_uninit(void) {
-    int res = pthread_cancel(ptid_focus);
-    if (res == 0) {
-        scr_log_print(LPRINT_NORMAL, "focus: thread stopped");
-    } else {
-        scr_log_print(LPRINT_NORMAL, "focus: thread stopping failed");
-    }
-
-    hk_del_handler(HOOK_PRE_MESSAGE_IN, g_hook);
+    hk_del_handler(HOOK_PRE_MESSAGE_IN, g_message_hook);
+    hk_del_handler(HOOK_UNREAD_LIST_CHANGE, g_unread_hook);
 }
