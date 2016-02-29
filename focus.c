@@ -101,15 +101,15 @@ static unsigned int focus_unread_handler(
     UNUSED(hook);
     UNUSED(data);
 
-    unsigned int all_unread = 0;
+    unsigned int total_unread = 0;
 
     for (; args->name; args++) {
         if (!g_strcmp0(args->name, "unread")) {
-            all_unread = atoi(args->value);
+            total_unread = atoi(args->value);
         }
     }
 
-    if (g_unread_count > all_unread) {
+    if (g_unread_count > total_unread) {
         int ret_get_focus = xdo_get_focused_window_sane(
             g_xdo, &g_mcabber_window
         );
@@ -121,7 +121,7 @@ static unsigned int focus_unread_handler(
         }
     }
 
-    g_unread_count = all_unread;
+    g_unread_count = total_unread;
 
     return HOOK_HANDLER_RESULT_ALLOW_MORE_HANDLERS;
 }
