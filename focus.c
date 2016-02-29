@@ -43,7 +43,7 @@ static unsigned int g_unread_count;
 module_info_t info_focus = {
     .branch          = MCABBER_BRANCH,
     .api             = MCABBER_API_VERSION,
-    .version         = "2.2",
+    .version         = "3.0",
     .description     = "focus hokus pocus",
     .requires        = NULL,
     .init            = focus_init,
